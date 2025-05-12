@@ -48,7 +48,7 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 		myLobby, err := lobby.GetLobby(lobbyId)
 		if err != nil {
 			// lobby not created yet, add it
-			lobbies[lobbyId] = lobby.NewLobby(lobbyId)
+			lobbies[lobbyId] = lobby.NewLobby(lobbyId, strconv.Itoa(lobbyId))
 			myLobby, _ = lobby.GetLobby(lobbyId)
 		}
 
