@@ -53,7 +53,7 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 		}
 
 		// add user to lobby
-		myLobby.AddPlayer(userToken.Value)
+		myLobby.AddPlayerToLobby(userToken.Value)
 
 		return views.Lobby(myLobby).Render(c.Request().Context(), c.Response().Writer)
 	})

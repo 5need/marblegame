@@ -34,7 +34,7 @@ func TestPlayerAdding(t *testing.T) {
 			l.MaxPlayers = 2
 
 			for _, p := range tC.input {
-				l.AddPlayer(p)
+				l.AddPlayerToLobby(p)
 			}
 
 			ans := l.Players

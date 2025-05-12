@@ -42,7 +42,7 @@ func NewLobby(lobbyId int, name string) *Lobby {
 	return newLobby
 }
 
-func (lobby *Lobby) AddPlayer(userToken string) error {
+func (lobby *Lobby) AddPlayerToLobby(userToken string) error {
 	playerCount := len(lobby.Players)
 	if playerCount >= lobby.MaxPlayers {
 		return errors.New("Player count already at max")
