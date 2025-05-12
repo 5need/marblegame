@@ -1,0 +1,21 @@
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  bin = "./tmp/main"
+  cmd = "templ generate; go build -o ./tmp/main ."
+  exclude_regex = ["_test.go", ".css", "_templ.go"]
+  full_bin = "ENV=development ./tmp/main"
+  exclude_dir = ["tmp"]
+  include_ext = ["go", "tpl", "templ", "tmpl", "html"]
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true
+
+[proxy]
+  # Enable live-reloading on the browser.
+  enabled = true
+  proxy_port = 3001
+  app_port = 3000

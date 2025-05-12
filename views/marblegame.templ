@@ -1,0 +1,74 @@
+package views
+
+templ Toast(message string) {
+	<div id="toast" hx-swap-oob="beforeend">
+		<div _="init wait 5s then transition my *opacity to 0 over 5s then remove me">
+			{ message }
+		</div>
+	</div>
+}
+
+templ MarbleGameLogin() {
+	@RawBase("Logging you in") {
+		<div>Logging you in</div>
+	}
+}
+
+templ MarbleGame(userToken string) {
+	@RawBase("Logged in " + userToken) {
+		<div
+			class="relative flex h-full min-h-screen w-full items-center justify-center bg-base text-text"
+			_="
+			on keydown from <body/>
+				if event.key == 'Enter'
+					halt the event
+					set x to #chatbox-input
+					if x == document.activeElement
+						send submit to #chatbox-form 
+					else
+						call x.focus()
+					end
+				else if event.key == 'Escape'
+					set x to #chatbox-input
+					call x.blur()
+				end
+			end
+			"
+		>
+			<div id="game-container">
+				<div id="game-canvas" class="overflow-hidden"></div>
+				<script type="module" src="/marblegame/marblegame.js"></script>
+			</div>
+			<form
+				id="cursor-form"
+				hx-ext="ws"
+				ws-connect={ "/marblegame/ws/cursor?userToken=" + userToken }
+				ws-send
+				hx-trigger="sendit"
+				_="on submit halt the event end"
+				class="hidden"
+			>
+				<input id="mouseX" name="mouseX" class="bg-transparent"/>
+				<input id="mouseY" name="mouseY" class="bg-transparent"/>
+			</form>
+			@Chatbox(userToken)
+			<form
+				id="game-form"
+				hx-ext="ws"
+				ws-connect={ "/marblegame/ws/game?userToken=" + userToken }
+				hx-trigger="sendit"
+				ws-send
+				class="hidden"
+			>
+				<input
+					id="action"
+					name="action"
+					class="w-full bg-transparent"
+					placeholder="action"
+				/>
+				<button _="on click send sendit to #game-form">send</button>
+			</form>
+			<div id="toast" class="absolute right-0 bottom-0 p-4"></div>
+		</div>
+	}
+}

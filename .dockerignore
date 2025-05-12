@@ -1,0 +1,7 @@
+.git/
+.air.toml
+.gitignore
+build.sh
+*.tar
+docker-compose-secret.yaml
+tmp
