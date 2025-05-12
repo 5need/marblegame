@@ -7,9 +7,11 @@ import (
 )
 
 type Lobby struct {
-	Id      string
-	Name    string
-	Players []string
+	Id          string
+	Name        string
+	MaxPlayers  int
+	PartyLeader string
+	Players     []string
 }
 
 var lobbies = make(map[int]*Lobby, 0)
@@ -26,11 +28,13 @@ func GetLobby(lobbyId int) (*Lobby, error) {
 	return lobbies[lobbyId], nil
 }
 
-func NewLobby(lobbyId int) *Lobby {
+func NewLobby(lobbyId int, name string) *Lobby {
 	newLobby := &Lobby{
-		Id:      strconv.Itoa(lobbyId),
-		Name:    strconv.Itoa(lobbyId),
-		Players: []string{},
+		Id:          strconv.Itoa(lobbyId),
+		Name:        name,
+		MaxPlayers:  2,
+		PartyLeader: "",
+		Players:     []string{},
 	}
 
 	lobbies[lobbyId] = newLobby
@@ -39,6 +43,11 @@ func NewLobby(lobbyId int) *Lobby {
 }
 
 func (lobby *Lobby) AddPlayer(userToken string) error {
+	playerCount := len(lobby.Players)
+	if playerCount >= lobby.MaxPlayers {
+		return errors.New("Player count already at max")
+	}
+
 	alreadyInLobby := slices.Contains(lobby.Players, userToken)
 
 	if alreadyInLobby {
@@ -52,7 +61,7 @@ func (lobby *Lobby) AddPlayer(userToken string) error {
 func (lobby *Lobby) RemovePlayerFromLobby(userToken string) error {
 	inLobby := slices.Contains(lobby.Players, userToken)
 	if !inLobby {
-		return errors.New("Player not in lobby already")
+		return errors.New("Player already removed or not in lobby")
 	}
 
 	updatedPlayerList := []string{}
