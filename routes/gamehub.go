@@ -1,8 +1,9 @@
-package marblegame
+package routes
 
 import (
 	"encoding/json"
 	"fmt"
+	"marblegame/engine"
 	"math/rand"
 	"time"
 
@@ -29,21 +30,25 @@ func gameRegisterHandler(c *Client) {
 	time.AfterFunc(500*time.Millisecond, // TODO: this is jank sauce
 		func() {
 			if _, exists := marbleGame.Players[c.userToken]; !exists {
-				joiningPlayer := Player{
+				joiningPlayer := engine.Player{
 					UserToken:         c.userToken,
 					DisplayName:       c.userToken[:4],
 					Score:             0,
 					Hue:               int(rand.Int31n(256)),
 					ShouldSkipMyTurns: false,
 					TurnsTaken:        0,
-					Inventory: []MarbleType{
-						marbleTypes[0],
-						marbleTypes[0],
-						marbleTypes[0],
-						marbleTypes[1],
-						marbleTypes[0],
-						marbleTypes[2],
-						marbleTypes[0],
+					Inventory: []engine.MarbleType{
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[1],
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[2],
+						engine.MarbleTypes[1],
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[2],
+						engine.MarbleTypes[0],
+						engine.MarbleTypes[0],
 					},
 				}
 				marbleGame.Players[c.userToken] = &joiningPlayer
@@ -72,7 +77,7 @@ func gameReadPumpHandler(c *Client, message []byte) {
 		fmt.Println(err)
 		return
 	}
-	var a Action
+	var a engine.Action
 	err = json.Unmarshal([]byte(r.ActionString), &a)
 	fmt.Println(a)
 	if err != nil {
@@ -83,13 +88,13 @@ func gameReadPumpHandler(c *Client, message []byte) {
 
 	// 3. calculate their hit into a new game state
 	latestFrame := marbleGame.Frames[len(marbleGame.Frames)-1]
-	successfullyValidateFrame, err := ValidateGameAction(a, latestFrame)
+	successfullyValidateFrame, err := marbleGame.ValidateGameAction(a, latestFrame)
 
 	if err != nil {
 		// send an error or something
 		fmt.Println(err)
 	} else {
-		newGameFrames := GenerateNewGameFrames(&a, marbleGame, &successfullyValidateFrame)
+		newGameFrames := marbleGame.GenerateNewGameFrames(&a, &successfullyValidateFrame)
 		marbleGame.Frames = newGameFrames
 		// add to the played turns on player
 		marbleGame.TurnOrder[marbleGame.ActivePlayerIndex].TurnsTaken++
@@ -105,12 +110,12 @@ func gameReadPumpHandler(c *Client, message []byte) {
 	}
 }
 
-func sendMarbleGameToClients(h *Hub, marbleGame *MarbleGame) {
+func sendMarbleGameToClients(h *Hub, marbleGame *engine.MarbleGame) {
 	marshalledMarbleGame, _ := json.Marshal(marbleGame)
 	h.broadcast <- marshalledMarbleGame
 }
 
-func sendMarbleGameToClient(c *Client, marbleGame *MarbleGame) {
+func sendMarbleGameToClient(c *Client, marbleGame *engine.MarbleGame) {
 	marshalledMarbleGame, _ := json.Marshal(marbleGame)
 	c.send <- marshalledMarbleGame
 }

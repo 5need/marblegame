@@ -1,4 +1,4 @@
-package marblegame
+package engine
 
 import (
 	"github.com/deeean/go-vector/vector2"

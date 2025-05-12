@@ -1,4 +1,4 @@
-package marblegame
+package routes
 
 import (
 	"errors"

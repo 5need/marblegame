@@ -1,7 +1,7 @@
 package main
 
 import (
-	"marblegame/routes/marblegame"
+	"marblegame/routes"
 	"net/http"
 	"os"
 
@@ -48,7 +48,7 @@ func main() {
 	}))
 	e.Use(middleware.Recover())
 
-	marblegame.MarbleGameRouteHandler(e)
+	routes.MarbleGameRouteHandler(e)
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
 		if he, ok := err.(*echo.HTTPError); ok {

@@ -4,20 +4,16 @@ templ RawBase(title string) {
 	<!DOCTYPE html>
 	<html>
 		<head>
-			@Head(title)
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, minimum-scale=1"/>
+			<title>{ title }</title>
+			<script src="/js/htmx.min.js"></script>
+			<script src="https://unpkg.com/htmx-ext-ws@2.0.1/ws.js"></script>
+			<script src="/js/_hyperscript.min.js"></script>
+			<link rel="stylesheet" href="/css/style.css"/>
 		</head>
 		<body>
 			{ children... }
 		</body>
 	</html>
-}
-
-templ Head(title string) {
-	<meta charset="utf-8"/>
-	<meta name="viewport" content="width=device-width, minimum-scale=1"/>
-	<title>{ title }</title>
-	<script src="/js/htmx.min.js"></script>
-	<script src="https://unpkg.com/htmx-ext-ws@2.0.1/ws.js"></script>
-	<script src="/js/_hyperscript.min.js"></script>
-	<link rel="stylesheet" href="/css/style.css"/>
 }

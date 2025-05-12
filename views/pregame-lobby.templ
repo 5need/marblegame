@@ -1,0 +1,41 @@
+package views
+
+import (
+	"marblegame/lobby"
+)
+
+templ Lobby(lobby *lobby.Lobby) {
+	@RawBase("MarbleGame") {
+		<div class="min-h-screen bg-base text-text">
+			in a lobby, swag
+			{ lobby.Id }
+			{ lobby.Name }
+			for _, player := range lobby.Players {
+				<div>{ player }</div>
+			}
+		</div>
+	}
+}
+
+templ PregameLobby(userToken string) {
+	@RawBase("MarbleGame") {
+		<div class="min-h-screen bg-base text-text">
+			@ListOfLobbies(map[int]*lobby.Lobby{})
+		</div>
+	}
+}
+
+templ ListOfLobbies(lobbies map[int]*lobby.Lobby) {
+	<form
+		id="listOfLobbies"
+		hx-get="/listOfLobbies"
+		hx-swap="innerHTML"
+	>
+		for _, lobby := range lobbies {
+			<div>
+				<a href={ templ.SafeURL("/lobby/" + lobby.Id) }>{ lobby.Id } { lobby.Name }</a>
+			</div>
+		}
+		<button>refresh</button>
+	</form>
+}

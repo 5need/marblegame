@@ -1,4 +1,4 @@
-package marblegame
+package engine
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/ungerik/go3d/float64/vec3"
 )
 
-var marbleTypes = []MarbleType{
+var MarbleTypes = []MarbleType{
 	{
 		Name:        "Marble",
 		Description: "Scores normally.",
@@ -52,7 +52,7 @@ func NewMarbleGame() *MarbleGame {
 // Handles validating a legal game action
 // returns an error if invalid
 // if it's valid it will send a new MarbleGameFrame with the new Marble
-func ValidateGameAction(action Action, frame MarbleGameFrame) (MarbleGameFrame, error) {
+func (marbleGame *MarbleGame) ValidateGameAction(action Action, frame MarbleGameFrame) (MarbleGameFrame, error) {
 	player, exists := marbleGame.Players[action.UserToken]
 	if !exists {
 		return MarbleGameFrame{}, errors.New("Invalid Player")
@@ -131,7 +131,7 @@ func ValidateGameAction(action Action, frame MarbleGameFrame) (MarbleGameFrame, 
 	return newFrame, nil
 }
 
-func GenerateNewGameFrames(action *Action, marbleGame *MarbleGame, frame *MarbleGameFrame) []MarbleGameFrame {
+func (marbleGame *MarbleGame) GenerateNewGameFrames(action *Action, frame *MarbleGameFrame) []MarbleGameFrame {
 	previousFrame := frame
 
 	var newGameFrames []MarbleGameFrame
@@ -152,11 +152,11 @@ func GenerateNewGameFrames(action *Action, marbleGame *MarbleGame, frame *Marble
 			}
 		}
 
-		HandleCollisions(newFrame)
-		HandleScoring(newFrame)
+		newFrame.HandleCollisions(marbleGame)
+		newFrame.HandleScoring(marbleGame)
 
 		newGameFrames = append(newGameFrames, newFrame)
-		if AreMarblesSettled(newFrame) {
+		if newFrame.AreMarblesSettled() {
 			break
 		}
 		previousFrame = &newFrame
@@ -164,7 +164,7 @@ func GenerateNewGameFrames(action *Action, marbleGame *MarbleGame, frame *Marble
 
 	finalFrame := &newGameFrames[len(newGameFrames)-1]
 
-	ResetRotations(*finalFrame)
+	finalFrame.ResetRotations()
 
 	if marbleGame.Config.RemoveMarblesFromOutsideScoringZone {
 		removeMeByIndex := []int{}
@@ -195,26 +195,26 @@ func GenerateNewGameFrames(action *Action, marbleGame *MarbleGame, frame *Marble
 		finalFrame.Marbles = safeMarbles
 	}
 
-	ResetCollidedFlags(*finalFrame)
+	finalFrame.ResetCollidedFlags()
 
 	return newGameFrames
 }
 
-func ResetCollidedFlags(frame MarbleGameFrame) {
+func (frame *MarbleGameFrame) ResetCollidedFlags() {
 	for i := range frame.Marbles {
 		marble := &frame.Marbles[i]
 		marble.Collided = false
 	}
 }
 
-func ResetRotations(frame MarbleGameFrame) {
+func (frame *MarbleGameFrame) ResetRotations() {
 	for i := range frame.Marbles {
 		marble := &frame.Marbles[i]
 		marble.Rot = quaternion.Ident
 	}
 }
 
-func HandleCollisions(frame MarbleGameFrame) {
+func (frame *MarbleGameFrame) HandleCollisions(marbleGame *MarbleGame) {
 	// handle rotating the marbles
 	for i := range frame.Marbles {
 		marble := &frame.Marbles[i]
@@ -238,7 +238,7 @@ func HandleCollisions(frame MarbleGameFrame) {
 	}
 
 	// reset Collided flags
-	ResetCollidedFlags(frame)
+	frame.ResetCollidedFlags()
 
 	// collisions between marbles
 	for i := range frame.Marbles {
@@ -338,7 +338,7 @@ func CalculateRotationQuaternion(vx, vy, radius float64) quaternion.T {
 	return q
 }
 
-func HandleScoring(frame MarbleGameFrame) {
+func (frame *MarbleGameFrame) HandleScoring(marbleGame *MarbleGame) {
 	// reset scoring to 0
 	for _, v := range marbleGame.Players {
 		v.Score = 0
@@ -378,7 +378,7 @@ func HandleScoring(frame MarbleGameFrame) {
 	}
 }
 
-func AreMarblesSettled(frame MarbleGameFrame) bool {
+func (frame *MarbleGameFrame) AreMarblesSettled() bool {
 	isSettled := true
 
 	for i := range frame.Marbles {
