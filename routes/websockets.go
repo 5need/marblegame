@@ -45,7 +45,6 @@ func serveWS(hub *Hub, c echo.Context) error {
 	return nil
 }
 
-// TODO: make the readPumpHandler and writePumpHandler nillable, and use the chat thing as the defaults if they are nil
 // A Hub handles multiple Clients
 type Hub struct {
 	clients                  map[*Client]bool
@@ -76,6 +75,20 @@ func newHub(
 		readPumpHandler:          readPumpHandler,
 		readPumpDebounceDuration: readPumpDebounceDuration,
 		writePumpHandler:         writePumpHandler,
+	}
+}
+
+func newHub2() *Hub {
+	return &Hub{
+		clients:                  make(map[*Client]bool),
+		broadcast:                make(chan []byte),
+		register:                 make(chan *Client),
+		unregister:               make(chan *Client),
+		registerHandler:          nil,
+		unregisterHandler:        nil,
+		readPumpHandler:          nil,
+		readPumpDebounceDuration: 0,
+		writePumpHandler:         nil,
 	}
 }
 
@@ -187,7 +200,9 @@ func (c *Client) readPump() {
 
 			case <-debounceTicker.C:
 				if len(lastMessage) != 0 {
-					c.hub.readPumpHandler(c, lastMessage)
+					if c.hub.readPumpHandler != nil {
+						c.hub.readPumpHandler(c, lastMessage)
+					}
 					lastMessage = nil // Reset after handling
 				}
 			}
@@ -198,7 +213,9 @@ func (c *Client) readPump() {
 			if !ok {
 				return
 			}
-			c.hub.readPumpHandler(c, message)
+			if c.hub.readPumpHandler != nil {
+				c.hub.readPumpHandler(c, message)
+			}
 		}
 	}
 
@@ -222,10 +239,12 @@ func (c *Client) writePump() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 			}
 
-			err := c.hub.writePumpHandler(c, message)
+			if c.hub.writePumpHandler != nil {
+				err := c.hub.writePumpHandler(c, message)
 
-			if err != nil {
-				return
+				if err != nil {
+					return
+				}
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
