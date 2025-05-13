@@ -2,6 +2,7 @@ package lobby
 
 import (
 	"errors"
+	"marblegame/websockets"
 	"slices"
 	"strconv"
 )
@@ -15,6 +16,7 @@ type Lobby struct {
 }
 
 var lobbies = make(map[int]*Lobby, 0)
+var lobbyHubs = make(map[int]*websockets.Hub, 0)
 
 func GetLobbies() map[int]*Lobby {
 	return lobbies

@@ -29,7 +29,7 @@ func LobbyRoutes(e *echo.Echo) {
 		// add user to lobby
 		myLobby.AddPlayerToLobby(userToken.Value)
 
-		return views.Lobby(myLobby).Render(c.Request().Context(), c.Response().Writer)
+		return views.Lobby(myLobby, userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
 	e.GET("/listOfLobbies", func(c echo.Context) error {
 		return views.ListOfLobbies(lobby.GetLobbies()).Render(c.Request().Context(), c.Response().Writer)

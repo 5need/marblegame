@@ -4,9 +4,24 @@ import (
 	"marblegame/lobby"
 )
 
-templ Lobby(lobby *lobby.Lobby) {
+templ Lobby(lobby *lobby.Lobby, userToken string) {
 	@RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col bg-base text-text">
+			<form
+				id="lobby-form"
+				hx-ext="ws"
+				ws-connect={ "/ws/lobby/" + lobby.Id + "?userToken=" + userToken }
+				ws-send
+				_="on submit set the value of #chatbox-input to '' end"
+			>
+				<input
+					id="lobby-input"
+					name="message"
+					class="w-full bg-transparent text-text"
+					placeholder="something..."
+					_="on blur set my value to ''"
+				/>
+			</form>
 			<div class="">
 				{ lobby.Id } { lobby.Name }
 			</div>

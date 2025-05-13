@@ -6,36 +6,37 @@ import (
 	"encoding/json"
 	"fmt"
 	"marblegame/views"
+	"marblegame/websockets"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 )
 
 func ChatHub(e *echo.Echo) {
-	chatHub := newHub(
-		func(c *Client) {
+	chatHub := websockets.NewHub(
+		func(c *websockets.Client) {
 			buffer := bytes.Buffer{}
-			views.ChatboxResponse(c.userToken[:4]+" joined chat", "Server").Render(context.Background(), &buffer)
-			c.hub.broadcast <- buffer.Bytes()
+			views.ChatboxResponse(c.UserToken[:4]+" joined chat", "Server").Render(context.Background(), &buffer)
+			c.Hub.Broadcast <- buffer.Bytes()
 		},
 		nil,
 		chatReadPumpHandler,
 		0, // instant chat, no debouncing
 		chatWritePumpHandler,
 	)
-	chatHub.unregisterHandler = func(c *Client) {
+	chatHub.UnregisterHandler = func(c *websockets.Client) {
 		buffer := bytes.Buffer{}
-		views.ChatboxResponse(c.userToken[:4]+" left chat", "Server").Render(context.Background(), &buffer)
-		chatHub.broadcast <- buffer.Bytes()
+		views.ChatboxResponse(c.UserToken[:4]+" left chat", "Server").Render(context.Background(), &buffer)
+		chatHub.Broadcast <- buffer.Bytes()
 	}
-	go chatHub.run()
+	go chatHub.Run()
 
 	e.GET("/ws/chat", func(c echo.Context) error {
-		return serveWS(chatHub, c)
+		return websockets.ServeWS(chatHub, c)
 	})
 }
 
-func chatReadPumpHandler(c *Client, message []byte) {
+func chatReadPumpHandler(c *websockets.Client, message []byte) {
 	var r struct {
 		Message string `json:"message"`
 	}
@@ -51,21 +52,21 @@ func chatReadPumpHandler(c *Client, message []byte) {
 	fmt.Println(r)
 
 	buffer := bytes.Buffer{}
-	views.ChatboxResponse(r.Message, c.userToken).Render(context.Background(), &buffer)
+	views.ChatboxResponse(r.Message, c.UserToken).Render(context.Background(), &buffer)
 
-	c.hub.broadcast <- buffer.Bytes()
+	c.Hub.Broadcast <- buffer.Bytes()
 }
 
-func chatWritePumpHandler(c *Client, message []byte) error {
-	w, err := c.conn.NextWriter(websocket.TextMessage)
+func chatWritePumpHandler(c *websockets.Client, message []byte) error {
+	w, err := c.Conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		return err
 	}
 
-	n := len(c.send)
+	n := len(c.Send)
 	for i := 0; i < n; i++ {
-		message = append(message, newline...)
-		message = append(message, <-c.send...)
+		message = append(message, []byte{'\n'}...)
+		message = append(message, <-c.Send...)
 	}
 
 	w.Write(message)

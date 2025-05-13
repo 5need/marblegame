@@ -1,4 +1,4 @@
-package routes
+package websockets
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024, // maybe change this to be larger since going to send tons of game frame data
 }
 
-func serveWS(hub *Hub, c echo.Context) error {
+func ServeWS(hub *Hub, c echo.Context) error {
 	userToken := c.QueryParam("userToken")
 	if userToken == "" {
 		return errors.New("no userToken")
@@ -27,19 +27,19 @@ func serveWS(hub *Hub, c echo.Context) error {
 		return err
 	}
 	client := &Client{
-		hub:       hub,
-		userToken: userToken,
-		conn:      conn,
-		send:      make(chan []byte, 256),
+		Hub:       hub,
+		UserToken: userToken,
+		Conn:      conn,
+		Send:      make(chan []byte, 256),
 	}
 
-	client.hub.register <- client
+	client.Hub.Register <- client
 
 	go client.writePump()
 	go client.readPump()
 
-	if client.hub.registerHandler != nil {
-		client.hub.registerHandler(client)
+	if client.Hub.RegisterHandler != nil {
+		client.Hub.RegisterHandler(client)
 	}
 
 	return nil
@@ -47,18 +47,18 @@ func serveWS(hub *Hub, c echo.Context) error {
 
 // A Hub handles multiple Clients
 type Hub struct {
-	clients                  map[*Client]bool
-	broadcast                chan []byte
-	register                 chan *Client
-	unregister               chan *Client
-	registerHandler          func(c *Client)
-	unregisterHandler        func(c *Client)
-	readPumpHandler          func(c *Client, message []byte)
-	readPumpDebounceDuration time.Duration
-	writePumpHandler         func(c *Client, message []byte) error
+	Clients                  map[*Client]bool
+	Broadcast                chan []byte
+	Register                 chan *Client
+	Unregister               chan *Client
+	RegisterHandler          func(c *Client)
+	UnregisterHandler        func(c *Client)
+	ReadPumpHandler          func(c *Client, message []byte)
+	ReadPumpDebounceDuration time.Duration
+	WritePumpHandler         func(c *Client, message []byte) error
 }
 
-func newHub(
+func NewHub(
 	registerHandler func(c *Client),
 	unregisterHandler func(c *Client),
 	readPumpHandler func(c *Client, message []byte),
@@ -66,66 +66,66 @@ func newHub(
 	writePumpHandler func(c *Client, message []byte) error,
 ) *Hub {
 	return &Hub{
-		clients:                  make(map[*Client]bool),
-		broadcast:                make(chan []byte),
-		register:                 make(chan *Client),
-		unregister:               make(chan *Client),
-		registerHandler:          registerHandler,
-		unregisterHandler:        unregisterHandler,
-		readPumpHandler:          readPumpHandler,
-		readPumpDebounceDuration: readPumpDebounceDuration,
-		writePumpHandler:         writePumpHandler,
+		Clients:                  make(map[*Client]bool),
+		Broadcast:                make(chan []byte),
+		Register:                 make(chan *Client),
+		Unregister:               make(chan *Client),
+		RegisterHandler:          registerHandler,
+		UnregisterHandler:        unregisterHandler,
+		ReadPumpHandler:          readPumpHandler,
+		ReadPumpDebounceDuration: readPumpDebounceDuration,
+		WritePumpHandler:         writePumpHandler,
 	}
 }
 
-func newHub2() *Hub {
+func NewHub2() *Hub {
 	return &Hub{
-		clients:                  make(map[*Client]bool),
-		broadcast:                make(chan []byte),
-		register:                 make(chan *Client),
-		unregister:               make(chan *Client),
-		registerHandler:          nil,
-		unregisterHandler:        nil,
-		readPumpHandler:          nil,
-		readPumpDebounceDuration: 0,
-		writePumpHandler:         nil,
+		Clients:                  make(map[*Client]bool),
+		Broadcast:                make(chan []byte),
+		Register:                 make(chan *Client),
+		Unregister:               make(chan *Client),
+		RegisterHandler:          nil,
+		UnregisterHandler:        nil,
+		ReadPumpHandler:          nil,
+		ReadPumpDebounceDuration: 0,
+		WritePumpHandler:         nil,
 	}
 }
 
-func (h *Hub) run() {
+func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
+		case client := <-h.Register:
 			// triggers whenever register channel gets something
-			h.clients[client] = true
+			h.Clients[client] = true
 			// registerHandler is in serveWS() for reasons. Something to do with starting the goroutines writePump and readPump before executing registerHandler
-		case client := <-h.unregister:
+		case client := <-h.Unregister:
 			// triggers whenever unregister channel gets something
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-				if h.unregisterHandler != nil {
+			if _, ok := h.Clients[client]; ok {
+				delete(h.Clients, client)
+				close(client.Send)
+				if h.UnregisterHandler != nil {
 					deceasedClient := &Client{
-						userToken: client.userToken,
+						UserToken: client.UserToken,
 					}
 					time.AfterFunc(
 						100*time.Millisecond,
-						func() { h.unregisterHandler(deceasedClient) },
+						func() { h.UnregisterHandler(deceasedClient) },
 					)
 				}
 			}
-		case message := <-h.broadcast:
+		case message := <-h.Broadcast:
 			// triggers whenever broadcast channel gets something
 			// fmt.Println("broadcasting from Hub")
-			for client := range h.clients {
+			for client := range h.Clients {
 				select {
-				case client.send <- message:
+				case client.Send <- message:
 				// successfully put message into client send channel
 				default:
 					// failed to put message into client send channel
 					fmt.Println("failed to put message into client send channel")
-					close(client.send)
-					delete(h.clients, client)
+					close(client.Send)
+					delete(h.Clients, client)
 				}
 			}
 		}
@@ -146,10 +146,10 @@ var (
 
 // A Client connects a ws connection to its Hub
 type Client struct {
-	hub       *Hub
-	userToken string
-	conn      *websocket.Conn
-	send      chan []byte
+	Hub       *Hub
+	UserToken string
+	Conn      *websocket.Conn
+	Send      chan []byte
 }
 
 // readPump pumps messages from the websocket connection to the hub
@@ -157,20 +157,20 @@ func (c *Client) readPump() {
 	fmt.Println("starting readPump goroutine")
 	defer func() {
 		fmt.Println("exiting readPump goroutine")
-		c.hub.unregister <- c
-		c.conn.Close()
+		c.Hub.Unregister <- c
+		c.Conn.Close()
 	}()
 
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(appData string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.Conn.SetReadLimit(maxMessageSize)
+	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetPongHandler(func(appData string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	messageChan := make(chan []byte)
 
 	// this continuously gets every message from the ws connection and throws it into the messageChan channel to be processed by the debouncer, if needed
 	go func() {
 		for {
-			_, message, err := c.conn.ReadMessage()
+			_, message, err := c.Conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Printf("error: %v", err)
@@ -182,10 +182,10 @@ func (c *Client) readPump() {
 		}
 	}()
 
-	shouldDebounce := c.hub.readPumpDebounceDuration != 0
+	shouldDebounce := c.Hub.ReadPumpDebounceDuration != 0
 
 	if shouldDebounce {
-		debounceTicker := time.NewTicker(c.hub.readPumpDebounceDuration)
+		debounceTicker := time.NewTicker(c.Hub.ReadPumpDebounceDuration)
 		defer debounceTicker.Stop()
 
 		var lastMessage []byte
@@ -200,8 +200,8 @@ func (c *Client) readPump() {
 
 			case <-debounceTicker.C:
 				if len(lastMessage) != 0 {
-					if c.hub.readPumpHandler != nil {
-						c.hub.readPumpHandler(c, lastMessage)
+					if c.Hub.ReadPumpHandler != nil {
+						c.Hub.ReadPumpHandler(c, lastMessage)
 					}
 					lastMessage = nil // Reset after handling
 				}
@@ -213,8 +213,8 @@ func (c *Client) readPump() {
 			if !ok {
 				return
 			}
-			if c.hub.readPumpHandler != nil {
-				c.hub.readPumpHandler(c, message)
+			if c.Hub.ReadPumpHandler != nil {
+				c.Hub.ReadPumpHandler(c, message)
 			}
 		}
 	}
@@ -228,27 +228,27 @@ func (c *Client) writePump() {
 	defer func() {
 		fmt.Println("exiting writePump goroutine")
 		ticker.Stop()
-		c.conn.Close()
+		c.Conn.Close()
 	}()
 
 	for {
 		select {
-		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			}
 
-			if c.hub.writePumpHandler != nil {
-				err := c.hub.writePumpHandler(c, message)
+			if c.Hub.WritePumpHandler != nil {
+				err := c.Hub.WritePumpHandler(c, message)
 
 				if err != nil {
 					return
 				}
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}

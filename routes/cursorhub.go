@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"marblegame/websockets"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -11,21 +12,21 @@ import (
 )
 
 func CursorHub(e *echo.Echo) {
-	cursorHub := newHub(
+	cursorHub := websockets.NewHub(
 		nil,
 		nil,
 		cursorReadPumpHandler,
 		50*time.Millisecond,
 		cursorWritePumpHandler,
 	)
-	go cursorHub.run()
+	go cursorHub.Run()
 
 	e.GET("/ws/cursor", func(c echo.Context) error {
-		return serveWS(cursorHub, c)
+		return websockets.ServeWS(cursorHub, c)
 	})
 }
 
-func cursorReadPumpHandler(c *Client, message []byte) {
+func cursorReadPumpHandler(c *websockets.Client, message []byte) {
 	var r struct {
 		UserToken string `json:"userToken"`
 		MouseX    string `json:"mouseX"`
@@ -38,7 +39,7 @@ func cursorReadPumpHandler(c *Client, message []byte) {
 		return
 	}
 	// fmt.Println("cursor:", r)
-	r.UserToken = c.userToken
+	r.UserToken = c.UserToken
 
 	byteSlice, err := json.Marshal(r)
 	if err != nil {
@@ -46,14 +47,14 @@ func cursorReadPumpHandler(c *Client, message []byte) {
 		return
 	}
 
-	c.hub.broadcast <- byteSlice
+	c.Hub.Broadcast <- byteSlice
 }
 
-func cursorWritePumpHandler(c *Client, message []byte) error {
-	n := len(c.send)
+func cursorWritePumpHandler(c *websockets.Client, message []byte) error {
+	n := len(c.Send)
 	for i := 0; i < n; i++ {
 		// only grab the last message lmao
-		message = <-c.send
+		message = <-c.Send
 	}
 
 	var r struct {
@@ -67,8 +68,8 @@ func cursorWritePumpHandler(c *Client, message []byte) error {
 		return errors.New("couldn't unmarshal :-(")
 	}
 
-	if r.UserToken != c.userToken {
-		w, err := c.conn.NextWriter(websocket.TextMessage)
+	if r.UserToken != c.UserToken {
+		w, err := c.Conn.NextWriter(websocket.TextMessage)
 		if err != nil {
 			return err
 		}
