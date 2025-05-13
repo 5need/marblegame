@@ -6,13 +6,16 @@ import (
 
 templ Lobby(lobby *lobby.Lobby) {
 	@RawBase("MarbleGame") {
-		<div class="min-h-screen bg-base text-text">
-			in a lobby, swag
-			{ lobby.Id }
-			{ lobby.Name }
-			for _, player := range lobby.Players {
-				<div>{ player }</div>
-			}
+		<div class="flex min-h-screen flex-col bg-base text-text">
+			<div class="">
+				{ lobby.Id } { lobby.Name }
+			</div>
+			<div>
+				Players:
+				for _, player := range lobby.Players {
+					<div>{ player }</div>
+				}
+			</div>
 		</div>
 	}
 }
