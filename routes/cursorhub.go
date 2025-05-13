@@ -20,7 +20,7 @@ func CursorHub(e *echo.Echo) {
 	)
 	go cursorHub.run()
 
-	e.GET("/marblegame/ws/cursor", func(c echo.Context) error {
+	e.GET("/ws/cursor", func(c echo.Context) error {
 		return serveWS(cursorHub, c)
 	})
 }

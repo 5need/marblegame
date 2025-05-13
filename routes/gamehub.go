@@ -21,7 +21,7 @@ func GameHub(e *echo.Echo) {
 	)
 	go gameHub.run()
 
-	e.GET("/marblegame/ws/game", func(c echo.Context) error {
+	e.GET("/ws/game", func(c echo.Context) error {
 		return serveWS(gameHub, c)
 	})
 }

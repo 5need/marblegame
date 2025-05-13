@@ -42,7 +42,7 @@ templ MarbleGame(userToken string) {
 			<form
 				id="cursor-form"
 				hx-ext="ws"
-				ws-connect={ "/marblegame/ws/cursor?userToken=" + userToken }
+				ws-connect={ "/ws/cursor?userToken=" + userToken }
 				ws-send
 				hx-trigger="sendit"
 				_="on submit halt the event end"
@@ -55,7 +55,7 @@ templ MarbleGame(userToken string) {
 			<form
 				id="game-form"
 				hx-ext="ws"
-				ws-connect={ "/marblegame/ws/game?userToken=" + userToken }
+				ws-connect={ "/ws/game?userToken=" + userToken }
 				hx-trigger="sendit"
 				ws-send
 				class="hidden"

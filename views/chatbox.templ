@@ -16,7 +16,7 @@ templ Chatbox(userToken string) {
 		<form
 			id="chatbox-form"
 			hx-ext="ws"
-			ws-connect={ "/marblegame/ws/chat?userToken=" + userToken }
+			ws-connect={ "/ws/chat?userToken=" + userToken }
 			ws-send
 			_="on submit set the value of #chatbox-input to '' end"
 		>

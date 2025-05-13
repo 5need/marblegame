@@ -30,7 +30,7 @@ func ChatHub(e *echo.Echo) {
 	}
 	go chatHub.run()
 
-	e.GET("/marblegame/ws/chat", func(c echo.Context) error {
+	e.GET("/ws/chat", func(c echo.Context) error {
 		return serveWS(chatHub, c)
 	})
 }
