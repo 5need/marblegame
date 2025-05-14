@@ -35,8 +35,10 @@ templ LobbyView(lobby *Lobby, userToken string) {
 
 templ PregameLobby(userToken string) {
 	@views.RawBase("MarbleGame") {
-		<div class="min-h-screen bg-base text-text">
-			@ListOfLobbies(map[int]*Lobby{})
+		<div class="flex min-h-screen flex-col items-center bg-base text-text">
+			<div class="flex w-full max-w-md flex-col">
+				@ListOfLobbies(map[int]*Lobby{})
+			</div>
 		</div>
 	}
 }
@@ -46,10 +48,16 @@ templ ListOfLobbies(lobbies map[int]*Lobby) {
 		id="listOfLobbies"
 		hx-get="/listOfLobbies"
 		hx-swap="innerHTML"
+		hx-trigger="submit"
 	>
+		<button>refresh</button>
 		for _, lobby := range lobbies {
-			<div>
-				<a href={ templ.SafeURL("/lobby/" + lobby.Id) }>{ lobby.Id } { lobby.Name }</a>
+			<div class="flex w-full justify-between">
+				<p>{ lobby.Name }</p>
+				<a
+					href={ templ.SafeURL("/lobby/" + lobby.Id) }
+					class="bg-blue text-base"
+				>join { len(lobby.Players) }/{ lobby.MaxPlayers }</a>
 			</div>
 		}
 		<button>refresh</button>
