@@ -22,13 +22,7 @@ templ LobbyView(lobby *Lobby, userToken string) {
 					_="on blur set my value to ''"
 				/>
 			</form>
-			<div id="currentLobby"></div>
-			<div>
-				Players:
-				for _, player := range lobby.Players {
-					<div>{ player }</div>
-				}
-			</div>
+			@CurrentLobby(lobby)
 		</div>
 	}
 }
@@ -67,5 +61,11 @@ templ ListOfLobbies(lobbies map[int]*Lobby) {
 templ CurrentLobby(lobby *Lobby) {
 	<div id="currentLobby" hx-swap-oob="true" class="">
 		{ lobby.Id } { lobby.Name }
+		<div>
+			Players:
+			for _, player := range lobby.Players {
+				<div>{ player }</div>
+			}
+		</div>
 	</div>
 }

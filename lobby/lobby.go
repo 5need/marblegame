@@ -68,17 +68,17 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 	}
 
 	lobbyHub.RegisterHandler = func(c *websockets.Client) {
-		buffer := bytes.Buffer{}
-		CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
+		// buffer := bytes.Buffer{}
+		// CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
 		fmt.Println("ADDED USER")
 
-		c.Hub.Broadcast <- buffer.Bytes()
+		// c.Hub.Broadcast <- buffer.Bytes()
 	}
 
 	lobbyHub.UnregisterHandler = func(c *websockets.Client) {
-		buffer := bytes.Buffer{}
-		// views.ChatboxResponse(c.UserToken[:4]+" left chat", "Server").Render(context.Background(), &buffer)
-		lobbyHub.Broadcast <- buffer.Bytes()
+		// buffer := bytes.Buffer{}
+		// CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
+		// lobbyHub.Broadcast <- buffer.Bytes()
 	}
 
 	lobbyHub.ReadPumpHandler = func(c *websockets.Client, message []byte) {
@@ -122,6 +122,10 @@ func (lobby *Lobby) AddPlayerToLobby(userToken string) error {
 		return errors.New("Player count already at max")
 	} else {
 		lobby.Players = append(lobby.Players, userToken)
+
+		buffer := bytes.Buffer{}
+		CurrentLobby(lobby).Render(context.Background(), &buffer)
+		lobby.Hub.Broadcast <- buffer.Bytes()
 		return nil
 	}
 }
@@ -140,6 +144,11 @@ func (lobby *Lobby) RemovePlayerFromLobby(userToken string) error {
 	}
 
 	lobby.Players = updatedPlayerList
+
+	buffer := bytes.Buffer{}
+	CurrentLobby(lobby).Render(context.Background(), &buffer)
+	lobby.Hub.Broadcast <- buffer.Bytes()
+
 	return nil
 }
 
