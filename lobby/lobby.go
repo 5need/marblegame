@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"marblegame/websockets"
+	"net/http"
 	"slices"
 	"strconv"
 
@@ -110,19 +111,19 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 }
 
 func (lobby *Lobby) AddPlayerToLobby(userToken string) error {
-	playerCount := len(lobby.Players)
-	if playerCount >= lobby.MaxPlayers {
-		return errors.New("Player count already at max")
-	}
-
 	alreadyInLobby := slices.Contains(lobby.Players, userToken)
-
 	if alreadyInLobby {
-		return errors.New("Player already in lobby")
+		return nil
 	}
 
-	lobby.Players = append(lobby.Players, userToken)
-	return nil
+	atMaxPlayers := len(lobby.Players) >= lobby.MaxPlayers
+
+	if atMaxPlayers {
+		return errors.New("Player count already at max")
+	} else {
+		lobby.Players = append(lobby.Players, userToken)
+		return nil
+	}
 }
 
 func (lobby *Lobby) RemovePlayerFromLobby(userToken string) error {
@@ -161,7 +162,10 @@ func LobbyRoutes(e *echo.Echo) {
 		}
 
 		// add user to lobby
-		myLobby.AddPlayerToLobby(userToken.Value)
+		if err = myLobby.AddPlayerToLobby(userToken.Value); err != nil {
+			fmt.Println(err)
+			return c.String(http.StatusUnauthorized, "Lobby is full or you're not allowed in")
+		}
 
 		return LobbyView(myLobby, userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
@@ -173,6 +177,13 @@ func LobbyRoutes(e *echo.Echo) {
 		fmt.Println(lobbies)
 		lobbyId, _ := strconv.Atoi(c.Param("lobbyId"))
 		myLobby, _ := GetLobby(lobbyId)
+
+		fmt.Println(myLobby.Players)
+
+		if ok := slices.Contains(myLobby.Players, c.QueryParam("userToken")); !ok {
+			return c.String(http.StatusUnauthorized, "You're not allowed in this lobby")
+		}
+
 		return websockets.ServeWS(&myLobby.Hub.Hub, c)
 	})
 }
