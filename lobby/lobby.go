@@ -1,10 +1,16 @@
 package lobby
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"marblegame/websockets"
 	"slices"
 	"strconv"
+
+	"github.com/gorilla/websocket"
+	"github.com/labstack/echo/v4"
 )
 
 type Lobby struct {
@@ -13,10 +19,14 @@ type Lobby struct {
 	MaxPlayers  int
 	PartyLeader string
 	Players     []string
+	Hub         *LobbyHub
+}
+type LobbyHub struct {
+	websockets.Hub
+	Lobby *Lobby
 }
 
 var lobbies = make(map[int]*Lobby, 0)
-var lobbyHubs = make(map[int]*websockets.Hub, 0)
 
 func GetLobbies() map[int]*Lobby {
 	return lobbies
@@ -37,11 +47,66 @@ func NewLobby(lobbyId int, name string) *Lobby {
 		MaxPlayers:  2,
 		PartyLeader: "",
 		Players:     []string{},
+		Hub:         nil,
 	}
+	newLobby.Hub = NewLobbyHub(newLobby)
 
 	lobbies[lobbyId] = newLobby
 
+	go newLobby.Hub.Run()
+
 	return newLobby
+}
+
+func NewLobbyHub(lobby *Lobby) *LobbyHub {
+	baseHub := websockets.NewHub2()
+
+	lobbyHub := LobbyHub{
+		Hub:   *baseHub,
+		Lobby: lobby,
+	}
+
+	lobbyHub.RegisterHandler = func(c *websockets.Client) {
+		buffer := bytes.Buffer{}
+		CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
+		fmt.Println("ADDED USER")
+
+		c.Hub.Broadcast <- buffer.Bytes()
+	}
+
+	lobbyHub.UnregisterHandler = func(c *websockets.Client) {
+		buffer := bytes.Buffer{}
+		// views.ChatboxResponse(c.UserToken[:4]+" left chat", "Server").Render(context.Background(), &buffer)
+		lobbyHub.Broadcast <- buffer.Bytes()
+	}
+
+	lobbyHub.ReadPumpHandler = func(c *websockets.Client, message []byte) {
+	}
+
+	lobbyHub.WritePumpHandler = func(c *websockets.Client, message []byte) error {
+		w, err := c.Conn.NextWriter(websocket.TextMessage)
+		if err != nil {
+			return err
+		}
+
+		n := len(c.Send)
+		for i := 0; i < n; i++ {
+			message = append(message, []byte{'\n'}...)
+			message = append(message, <-c.Send...)
+		}
+
+		w.Write(message)
+
+		if err := w.Close(); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	lobbyHub.ReadPumpDebounceDuration = 0
+
+	return &lobbyHub
 }
 
 func (lobby *Lobby) AddPlayerToLobby(userToken string) error {
@@ -75,4 +140,39 @@ func (lobby *Lobby) RemovePlayerFromLobby(userToken string) error {
 
 	lobby.Players = updatedPlayerList
 	return nil
+}
+
+func LobbyRoutes(e *echo.Echo) {
+	e.GET("/lobby", func(c echo.Context) error {
+		userToken, _ := c.Cookie("userToken")
+		// TODO: we're assuming a userToken here
+		return PregameLobby(userToken.Value).Render(c.Request().Context(), c.Response().Writer)
+	})
+
+	e.GET("/lobby/:lobbyId", func(c echo.Context) error {
+		userToken, _ := c.Cookie("userToken")
+		lobbyId, _ := strconv.Atoi(c.Param("lobbyId"))
+
+		myLobby, err := GetLobby(lobbyId)
+		if err != nil {
+			// lobby not created yet, add it
+			lobbies[lobbyId] = NewLobby(lobbyId, strconv.Itoa(lobbyId))
+			myLobby, _ = GetLobby(lobbyId)
+		}
+
+		// add user to lobby
+		myLobby.AddPlayerToLobby(userToken.Value)
+
+		return LobbyView(myLobby, userToken.Value).Render(c.Request().Context(), c.Response().Writer)
+	})
+	e.GET("/listOfLobbies", func(c echo.Context) error {
+		return ListOfLobbies(GetLobbies()).Render(c.Request().Context(), c.Response().Writer)
+	})
+	e.GET("/ws/lobby/:lobbyId", func(c echo.Context) error {
+		// find the lobbyHub, then serve it there
+		fmt.Println(lobbies)
+		lobbyId, _ := strconv.Atoi(c.Param("lobbyId"))
+		myLobby, _ := GetLobby(lobbyId)
+		return websockets.ServeWS(&myLobby.Hub.Hub, c)
+	})
 }

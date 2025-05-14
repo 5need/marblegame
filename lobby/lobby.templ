@@ -1,11 +1,11 @@
-package views
+package lobby
 
 import (
-	"marblegame/lobby"
+	"marblegame/views"
 )
 
-templ Lobby(lobby *lobby.Lobby, userToken string) {
-	@RawBase("MarbleGame") {
+templ LobbyView(lobby *Lobby, userToken string) {
+	@views.RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col bg-base text-text">
 			<form
 				id="lobby-form"
@@ -22,9 +22,7 @@ templ Lobby(lobby *lobby.Lobby, userToken string) {
 					_="on blur set my value to ''"
 				/>
 			</form>
-			<div class="">
-				{ lobby.Id } { lobby.Name }
-			</div>
+			<div id="currentLobby"></div>
 			<div>
 				Players:
 				for _, player := range lobby.Players {
@@ -36,14 +34,14 @@ templ Lobby(lobby *lobby.Lobby, userToken string) {
 }
 
 templ PregameLobby(userToken string) {
-	@RawBase("MarbleGame") {
+	@views.RawBase("MarbleGame") {
 		<div class="min-h-screen bg-base text-text">
-			@ListOfLobbies(map[int]*lobby.Lobby{})
+			@ListOfLobbies(map[int]*Lobby{})
 		</div>
 	}
 }
 
-templ ListOfLobbies(lobbies map[int]*lobby.Lobby) {
+templ ListOfLobbies(lobbies map[int]*Lobby) {
 	<form
 		id="listOfLobbies"
 		hx-get="/listOfLobbies"
@@ -56,4 +54,10 @@ templ ListOfLobbies(lobbies map[int]*lobby.Lobby) {
 		}
 		<button>refresh</button>
 	</form>
+}
+
+templ CurrentLobby(lobby *Lobby) {
+	<div id="currentLobby" hx-swap-oob="true" class="">
+		{ lobby.Id } { lobby.Name }
+	</div>
 }

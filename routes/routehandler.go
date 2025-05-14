@@ -18,7 +18,6 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 	ChatHub(e)
 	CursorHub(e)
 	GameHub(e)
-	LobbyHub(e)
 
 	e.GET("/", func(c echo.Context) error {
 		userToken, err := c.Cookie("userToken")
@@ -35,5 +34,5 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 		return views.MarbleGame(userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
 
-	LobbyRoutes(e)
+	lobby.LobbyRoutes(e)
 }
