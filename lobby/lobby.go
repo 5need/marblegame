@@ -84,7 +84,6 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 	}
 
 	lobbyHub.ReadPumpHandler = func(c *websockets.Client, message []byte) {
-		// TODO: add "console commands like `/disband`"
 		var r struct {
 			Message string `json:"message"`
 		}
@@ -104,8 +103,18 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 			buffer := bytes.Buffer{}
 			ChatboxResponse(r.Message, c.UserToken).Render(context.Background(), &buffer)
 			c.Hub.Broadcast <- buffer.Bytes()
+		} else {
+			switch r.Message {
+			case "/disband":
+				buffer := bytes.Buffer{}
+				ChatboxResponse("Lobby Leader disbanded the lobby", c.UserToken).Render(context.Background(), &buffer)
+				ReturnToLobbyViewerResponse().Render(context.Background(), &buffer)
+				lobbyHub.Broadcast <- buffer.Bytes()
+				lobbyHub.CloseAllConnections()
+				lobbyId, _ := strconv.Atoi(lobby.Id)
+				delete(lobbies, lobbyId)
+			}
 		}
-
 	}
 
 	lobbyHub.WritePumpHandler = func(c *websockets.Client, message []byte) error {

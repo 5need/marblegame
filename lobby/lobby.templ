@@ -136,3 +136,14 @@ templ ChatboxResponse(message string, senderUserToken string) {
 		</div>
 	</div>
 }
+
+templ ReturnToLobbyViewerResponse() {
+	<div id="chatbox" hx-swap-oob="beforeend">
+		<div
+			class="px-1 pb-1"
+			_="init set window.location.href to '/lobby' end"
+		>
+			l8r
+		</div>
+	</div>
+}
