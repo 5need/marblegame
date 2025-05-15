@@ -32,6 +32,7 @@ templ PregameLobby(userToken string) {
 	@views.RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col items-center bg-base text-text">
 			<div class="mt-24 flex w-full max-w-xs flex-col bg-surface0 p-4">
+				<div class="hidden" _="init send submit to the next <form/>"></div>
 				@ListOfLobbies(map[int]*Lobby{}, userToken)
 			</div>
 		</div>
