@@ -9,25 +9,15 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
 )
 
-func GameHub(e *echo.Echo) {
-	gameHub := websockets.NewHub(
-		gameRegisterHandler,
-		nil,
-		gameReadPumpHandler,
-		0,
-		gameWritePumpHandler,
-	)
-	go gameHub.Run()
-
-	e.GET("/ws/game", func(c echo.Context) error {
-		return websockets.ServeWS(gameHub, c)
-	})
+type GameHub struct {
+	websockets.Hub
 }
 
-func gameRegisterHandler(c *websockets.Client) {
+var _ websockets.HubInterface = (*GameHub)(nil)
+
+func (gh *GameHub) RegisterHandler(c *websockets.Client) {
 	time.AfterFunc(500*time.Millisecond, // TODO: this is jank sauce
 		func() {
 			if _, exists := marbleGame.Players[c.UserToken]; !exists {
@@ -56,7 +46,7 @@ func gameRegisterHandler(c *websockets.Client) {
 				marbleGame.TurnOrder = append(marbleGame.TurnOrder, &joiningPlayer)
 			}
 
-			sendMarbleGameToClient(c, marbleGame)
+			gh.sendMarbleGameToClient(c, marbleGame)
 		},
 	)
 }
@@ -65,7 +55,7 @@ type ActionRequest struct {
 	ActionString string `json:"action"` // stringified input cause lazy
 }
 
-func gameReadPumpHandler(c *websockets.Client, message []byte) {
+func (gh *GameHub) ReadPumpHandler(c *websockets.Client, message []byte) {
 	// so when we read this from the ws we need to do some things
 
 	// 1. check if it's the player's turn
@@ -107,28 +97,18 @@ func gameReadPumpHandler(c *websockets.Client, message []byte) {
 		}
 
 		// 5. send the new game state to all the clients
-		sendMarbleGameToClients(c.Hub, marbleGame)
+		gh.sendMarbleGameToClients(marbleGame)
 	}
 }
 
-func sendMarbleGameToClients(h *websockets.Hub, marbleGame *engine.MarbleGame) {
-	marshalledMarbleGame, _ := json.Marshal(marbleGame)
-	h.Broadcast <- marshalledMarbleGame
-}
-
-func sendMarbleGameToClient(c *websockets.Client, marbleGame *engine.MarbleGame) {
-	marshalledMarbleGame, _ := json.Marshal(marbleGame)
-	c.Send <- marshalledMarbleGame
-}
-
-func gameWritePumpHandler(c *websockets.Client, message []byte) error {
+func (gh *GameHub) WritePumpHandler(c *websockets.Client, message []byte) error {
 	w, err := c.Conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		return err
 	}
 
 	n := len(c.Send)
-	for i := 0; i < n; i++ {
+	for range n {
 		message = append(message, []byte{'\n'}...)
 		message = append(message, <-c.Send...)
 	}
@@ -140,4 +120,14 @@ func gameWritePumpHandler(c *websockets.Client, message []byte) error {
 	}
 
 	return nil
+}
+
+func (gh *GameHub) sendMarbleGameToClients(marbleGame *engine.MarbleGame) {
+	marshalledMarbleGame, _ := json.Marshal(marbleGame)
+	gh.Broadcast <- marshalledMarbleGame
+}
+
+func (gh *GameHub) sendMarbleGameToClient(c *websockets.Client, marbleGame *engine.MarbleGame) {
+	marshalledMarbleGame, _ := json.Marshal(marbleGame)
+	c.Send <- marshalledMarbleGame
 }

@@ -5,28 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"marblegame/websockets"
-	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo/v4"
 )
 
-func CursorHub(e *echo.Echo) {
-	cursorHub := websockets.NewHub(
-		nil,
-		nil,
-		cursorReadPumpHandler,
-		50*time.Millisecond,
-		cursorWritePumpHandler,
-	)
-	go cursorHub.Run()
-
-	e.GET("/ws/cursor", func(c echo.Context) error {
-		return websockets.ServeWS(cursorHub, c)
-	})
+type CursorHub struct {
+	websockets.Hub
+	Id          string
+	Name        string
+	MaxPlayers  int
+	PartyLeader string
+	Players     []string
 }
 
-func cursorReadPumpHandler(c *websockets.Client, message []byte) {
+var _ websockets.HubInterface = (*CursorHub)(nil)
+
+func (ch *CursorHub) ReadPumpHandler(c *websockets.Client, message []byte) {
 	var r struct {
 		UserToken string `json:"userToken"`
 		MouseX    string `json:"mouseX"`
@@ -47,10 +41,10 @@ func cursorReadPumpHandler(c *websockets.Client, message []byte) {
 		return
 	}
 
-	c.Hub.Broadcast <- byteSlice
+	ch.Broadcast <- byteSlice
 }
 
-func cursorWritePumpHandler(c *websockets.Client, message []byte) error {
+func (ch *CursorHub) WritePumpHandler(c *websockets.Client, message []byte) error {
 	n := len(c.Send)
 	for i := 0; i < n; i++ {
 		// only grab the last message lmao

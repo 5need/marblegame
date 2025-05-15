@@ -13,7 +13,7 @@ import (
 	"slices"
 )
 
-func LobbyView(lobby *Lobby, userToken string) templ.Component {
+func LobbyView(lobby *LobbyHub, userToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -122,7 +122,7 @@ func PregameLobby(userToken string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = ListOfLobbies(map[int]*Lobby{}, userToken).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = ListOfLobbies(map[int]*LobbyHub{}, userToken).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -140,7 +140,7 @@ func PregameLobby(userToken string) templ.Component {
 	})
 }
 
-func ListOfLobbies(lobbies map[int]*Lobby, userToken string) templ.Component {
+func ListOfLobbies(lobbies map[int]*LobbyHub, userToken string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -238,7 +238,7 @@ func ListOfLobbies(lobbies map[int]*Lobby, userToken string) templ.Component {
 	})
 }
 
-func CurrentLobby(lobby *Lobby) templ.Component {
+func CurrentLobby(lobby *LobbyHub) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

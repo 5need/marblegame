@@ -10,87 +10,60 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024, // maybe change this to be larger since going to send tons of game frame data
-}
-
-func ServeWS(hub *Hub, c echo.Context) error {
-	userToken := c.QueryParam("userToken")
-	if userToken == "" {
-		return errors.New("no userToken")
-	}
-
-	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	client := &Client{
-		Hub:       hub,
-		UserToken: userToken,
-		Conn:      conn,
-		Send:      make(chan []byte, 256),
-	}
-
-	client.Hub.Register <- client
-
-	go client.writePump()
-	go client.readPump()
-
-	if client.Hub.RegisterHandler != nil {
-		client.Hub.RegisterHandler(client)
-	}
-
-	return nil
-}
-
 // A Hub handles multiple Clients
 type Hub struct {
 	Clients                  map[*Client]bool
 	Broadcast                chan []byte
 	Register                 chan *Client
 	Unregister               chan *Client
-	RegisterHandler          func(c *Client)
-	UnregisterHandler        func(c *Client)
-	ReadPumpHandler          func(c *Client, message []byte)
 	ReadPumpDebounceDuration time.Duration
-	WritePumpHandler         func(c *Client, message []byte) error
 }
 
-func NewHub(
-	registerHandler func(c *Client),
-	unregisterHandler func(c *Client),
-	readPumpHandler func(c *Client, message []byte),
-	readPumpDebounceDuration time.Duration,
-	writePumpHandler func(c *Client, message []byte) error,
-) *Hub {
+var _ HubInterface = (*Hub)(nil)
+
+func NewHub() *Hub {
 	return &Hub{
 		Clients:                  make(map[*Client]bool),
 		Broadcast:                make(chan []byte),
 		Register:                 make(chan *Client),
 		Unregister:               make(chan *Client),
-		RegisterHandler:          registerHandler,
-		UnregisterHandler:        unregisterHandler,
-		ReadPumpHandler:          readPumpHandler,
-		ReadPumpDebounceDuration: readPumpDebounceDuration,
-		WritePumpHandler:         writePumpHandler,
-	}
-}
-
-func NewHub2() *Hub {
-	return &Hub{
-		Clients:                  make(map[*Client]bool),
-		Broadcast:                make(chan []byte),
-		Register:                 make(chan *Client),
-		Unregister:               make(chan *Client),
-		RegisterHandler:          nil,
-		UnregisterHandler:        nil,
-		ReadPumpHandler:          nil,
 		ReadPumpDebounceDuration: 0,
-		WritePumpHandler:         nil,
 	}
 }
+
+type HubInterface interface {
+	RegisterHandler(c *Client)
+	UnregisterHandler(c *Client)
+	UnregisterChan() chan *Client
+	BroadcastChan() chan []byte
+	ReadPumpHandler(c *Client, message []byte)
+	WritePumpHandler(c *Client, message []byte) error
+	ShouldDebounce() (bool, time.Duration)
+	ServeWS(c echo.Context) error
+	Run()
+	CloseAllConnections()
+}
+
+func (h *Hub) RegisterHandler(c *Client)   {}
+func (h *Hub) UnregisterHandler(c *Client) {}
+func (h *Hub) UnregisterChan() chan *Client {
+	return h.Unregister
+}
+func (h *Hub) BroadcastChan() chan []byte {
+	return h.Broadcast
+}
+func (h *Hub) ShouldDebounce() (bool, time.Duration) {
+	if h.ReadPumpDebounceDuration <= 0 {
+		return false, 0
+	} else {
+		return true, h.ReadPumpDebounceDuration
+	}
+}
+func (h *Hub) ReadPumpHandler(c *Client, message []byte) {
+	fmt.Println("ReadPumpHandler from just the Hub thingy")
+	fmt.Println(h.Clients)
+}
+func (h *Hub) WritePumpHandler(c *Client, message []byte) error { return nil }
 
 func (h *Hub) Run() {
 	for {
@@ -104,15 +77,13 @@ func (h *Hub) Run() {
 			if _, ok := h.Clients[client]; ok {
 				delete(h.Clients, client)
 				close(client.Send)
-				if h.UnregisterHandler != nil {
-					deceasedClient := &Client{
-						UserToken: client.UserToken,
-					}
-					time.AfterFunc(
-						100*time.Millisecond,
-						func() { h.UnregisterHandler(deceasedClient) },
-					)
+				deceasedClient := &Client{
+					UserToken: client.UserToken,
 				}
+				time.AfterFunc(
+					100*time.Millisecond,
+					func() { h.UnregisterHandler(deceasedClient) },
+				)
 			}
 		case message := <-h.Broadcast:
 			// triggers whenever broadcast channel gets something
@@ -130,6 +101,39 @@ func (h *Hub) Run() {
 			}
 		}
 	}
+}
+
+func (h *Hub) ServeWS(c echo.Context) error {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024, // maybe change this to be larger since going to send tons of game frame data
+	}
+
+	userToken := c.QueryParam("userToken")
+	if userToken == "" {
+		return errors.New("no userToken")
+	}
+
+	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	client := &Client{
+		Hub:       h,
+		UserToken: userToken,
+		Conn:      conn,
+		Send:      make(chan []byte, 256),
+	}
+
+	h.Register <- client
+
+	go client.WritePump()
+	go client.ReadPump()
+
+	h.RegisterHandler(client)
+
+	return nil
 }
 
 // Unregisters all clients
@@ -153,18 +157,18 @@ var (
 
 // A Client connects a ws connection to its Hub
 type Client struct {
-	Hub       *Hub
+	Hub       HubInterface
 	UserToken string
 	Conn      *websocket.Conn
 	Send      chan []byte
 }
 
-// readPump pumps messages from the websocket connection to the hub
-func (c *Client) readPump() {
+// ReadPump pumps messages from the websocket connection to the hub
+func (c *Client) ReadPump() {
 	fmt.Println("starting readPump goroutine")
 	defer func() {
 		fmt.Println("exiting readPump goroutine")
-		c.Hub.Unregister <- c
+		c.Hub.UnregisterChan() <- c
 		c.Conn.Close()
 	}()
 
@@ -189,10 +193,10 @@ func (c *Client) readPump() {
 		}
 	}()
 
-	shouldDebounce := c.Hub.ReadPumpDebounceDuration != 0
+	shouldDebounce, debounceDuration := c.Hub.ShouldDebounce()
 
 	if shouldDebounce {
-		debounceTicker := time.NewTicker(c.Hub.ReadPumpDebounceDuration)
+		debounceTicker := time.NewTicker(debounceDuration)
 		defer debounceTicker.Stop()
 
 		var lastMessage []byte
@@ -207,9 +211,7 @@ func (c *Client) readPump() {
 
 			case <-debounceTicker.C:
 				if len(lastMessage) != 0 {
-					if c.Hub.ReadPumpHandler != nil {
-						c.Hub.ReadPumpHandler(c, lastMessage)
-					}
+					c.Hub.ReadPumpHandler(c, lastMessage)
 					lastMessage = nil // Reset after handling
 				}
 			}
@@ -220,16 +222,14 @@ func (c *Client) readPump() {
 			if !ok {
 				return
 			}
-			if c.Hub.ReadPumpHandler != nil {
-				c.Hub.ReadPumpHandler(c, message)
-			}
+			c.Hub.ReadPumpHandler(c, message)
 		}
 	}
 
 }
 
-// writePump pumps messages from the hub to the websocket connection(s)
-func (c *Client) writePump() {
+// WritePump pumps messages from the hub to the websocket connection(s)
+func (c *Client) WritePump() {
 	fmt.Println("starting writePump goroutine")
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -246,12 +246,10 @@ func (c *Client) writePump() {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 			}
 
-			if c.Hub.WritePumpHandler != nil {
-				err := c.Hub.WritePumpHandler(c, message)
+			err := c.Hub.WritePumpHandler(c, message)
 
-				if err != nil {
-					return
-				}
+			if err != nil {
+				return
 			}
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))

@@ -143,28 +143,20 @@ func MarbleGame(userToken string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" ws-send hx-trigger=\"sendit\" _=\"on submit halt the event end\" class=\"hidden\"><input id=\"mouseX\" name=\"mouseX\" class=\"bg-transparent\"> <input id=\"mouseY\" name=\"mouseY\" class=\"bg-transparent\"></form>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = Chatbox(userToken).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<form id=\"game-form\" hx-ext=\"ws\" ws-connect=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" ws-send hx-trigger=\"sendit\" _=\"on submit halt the event end\" class=\"hidden\"><input id=\"mouseX\" name=\"mouseX\" class=\"bg-transparent\"> <input id=\"mouseY\" name=\"mouseY\" class=\"bg-transparent\"></form><form id=\"game-form\" hx-ext=\"ws\" ws-connect=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs("/ws/game?userToken=" + userToken)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/marblegame.templ`, Line: 58, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views/marblegame.templ`, Line: 57, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-trigger=\"sendit\" ws-send class=\"hidden\"><input id=\"action\" name=\"action\" class=\"w-full bg-transparent\" placeholder=\"action\"> <button _=\"on click send sendit to #game-form\">send</button></form><div id=\"toast\" class=\"absolute right-0 bottom-0 p-4\"></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" hx-trigger=\"sendit\" ws-send class=\"hidden\"><input id=\"action\" name=\"action\" class=\"w-full bg-transparent\" placeholder=\"action\"> <button _=\"on click send sendit to #game-form\">send</button></form><div id=\"toast\" class=\"absolute right-0 bottom-0 p-4\"></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

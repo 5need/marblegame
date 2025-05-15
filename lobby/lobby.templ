@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-templ LobbyView(lobby *Lobby, userToken string) {
+templ LobbyView(lobby *LobbyHub, userToken string) {
 	@views.RawBase("MarbleGame") {
 		<div
 			hx-ext="ws"
@@ -23,13 +23,13 @@ templ PregameLobby(userToken string) {
 		<div class="flex min-h-screen flex-col items-center bg-base text-text">
 			<div class="mt-24 flex w-full max-w-xs flex-col bg-surface0 p-4">
 				<div class="hidden" _="init send submit to the next <form/>"></div>
-				@ListOfLobbies(map[int]*Lobby{}, userToken)
+				@ListOfLobbies(map[int]*LobbyHub{}, userToken)
 			</div>
 		</div>
 	}
 }
 
-templ ListOfLobbies(lobbies map[int]*Lobby, userToken string) {
+templ ListOfLobbies(lobbies map[int]*LobbyHub, userToken string) {
 	<form
 		id="listOfLobbies"
 		hx-get="/listOfLobbies"
@@ -57,7 +57,7 @@ templ ListOfLobbies(lobbies map[int]*Lobby, userToken string) {
 	</form>
 }
 
-templ CurrentLobby(lobby *Lobby) {
+templ CurrentLobby(lobby *LobbyHub) {
 	<div id="currentLobby" hx-swap-oob="true" class="">
 		{ lobby.Id } { lobby.Name }
 		<div>

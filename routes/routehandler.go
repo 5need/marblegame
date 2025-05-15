@@ -12,12 +12,22 @@ import (
 )
 
 var marbleGame = engine.NewMarbleGame()
-var lobbies = map[int]*lobby.Lobby{}
 
 func MarbleGameRouteHandler(e *echo.Echo) {
-	ChatHub(e)
-	CursorHub(e)
-	GameHub(e)
+	cursorHub := CursorHub{}
+	go cursorHub.Run()
+
+	e.GET("/ws/cursor", func(c echo.Context) error {
+		return cursorHub.ServeWS(c)
+	})
+
+	gameHub := GameHub{}
+	go gameHub.Run()
+	e.GET("/ws/game", func(c echo.Context) error {
+		return gameHub.ServeWS(c)
+	})
+
+	lobby.LobbyRoutes(e)
 
 	e.GET("/", func(c echo.Context) error {
 		userToken, err := c.Cookie("userToken")
@@ -33,6 +43,4 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 		}
 		return views.MarbleGame(userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
-
-	lobby.LobbyRoutes(e)
 }
