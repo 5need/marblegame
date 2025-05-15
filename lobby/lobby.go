@@ -91,7 +91,7 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 		}
 
 		n := len(c.Send)
-		for i := 0; i < n; i++ {
+		for range n {
 			message = append(message, []byte{'\n'}...)
 			message = append(message, <-c.Send...)
 		}
