@@ -31,7 +31,7 @@ templ LobbyView(lobby *Lobby, userToken string) {
 templ PregameLobby(userToken string) {
 	@views.RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col items-center bg-base text-text">
-			<div class="flex w-full max-w-md flex-col">
+			<div class="mt-24 flex w-full max-w-xs flex-col bg-surface0 p-4">
 				@ListOfLobbies(map[int]*Lobby{}, userToken)
 			</div>
 		</div>
@@ -42,8 +42,9 @@ templ ListOfLobbies(lobbies map[int]*Lobby, userToken string) {
 	<form
 		id="listOfLobbies"
 		hx-get="/listOfLobbies"
-		hx-swap="innerHTML"
-		hx-trigger="submit"
+		hx-swap="outerHTML"
+		hx-trigger="load delay:5s, submit"
+		class="flex flex-col"
 	>
 		<button>refresh</button>
 		for _, lobby := range lobbies {
