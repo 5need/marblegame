@@ -3,12 +3,14 @@ package lobby
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"marblegame/websockets"
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -82,6 +84,28 @@ func NewLobbyHub(lobby *Lobby) *LobbyHub {
 	}
 
 	lobbyHub.ReadPumpHandler = func(c *websockets.Client, message []byte) {
+		// TODO: add "console commands like `/disband`"
+		var r struct {
+			Message string `json:"message"`
+		}
+
+		err := json.Unmarshal(message, &r)
+		if err != nil {
+			fmt.Println("couldn't unmarshal :-(")
+			return
+		}
+		if len(r.Message) == 0 {
+			return
+		}
+		fmt.Println(r)
+
+		isCommand := strings.HasPrefix(r.Message, "/")
+		if !isCommand {
+			buffer := bytes.Buffer{}
+			ChatboxResponse(r.Message, c.UserToken).Render(context.Background(), &buffer)
+			c.Hub.Broadcast <- buffer.Bytes()
+		}
+
 	}
 
 	lobbyHub.WritePumpHandler = func(c *websockets.Client, message []byte) error {

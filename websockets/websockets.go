@@ -132,6 +132,13 @@ func (h *Hub) Run() {
 	}
 }
 
+// Unregisters all clients
+func (h *Hub) CloseAllConnections() {
+	for client := range h.Clients {
+		h.Unregister <- client
+	}
+}
+
 const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
