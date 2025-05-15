@@ -338,7 +338,7 @@ func Chatbox(userToken string) templ.Component {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"absolute bottom-0 left-0 flex w-full max-w-md flex-col\"><div id=\"chatbox\" class=\"flex max-h-48 flex-col overflow-auto\" _=\"\n\t\t\t\t\ton focus from window or visibilitychange from window\n\t\t\t\t\t\tif &lt;div/&gt; in me exists\n\t\t\t\t\t\t\tgo to the bottom of the last &lt;div/&gt; in me smoothly\n\t\t\t\t\t\tend\n\t\t\t\t\tend\n\t\t\t\t\t\"></div><form ws-send _=\"on submit set the value of #chatbox-input to &#39;&#39; end\"><input id=\"chatbox-input\" name=\"message\" class=\"w-full bg-transparent text-text\" placeholder=\"Press Enter to chat...\" _=\"on blur set my value to &#39;&#39;\"></form></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<div class=\"absolute bottom-0 left-0 flex w-full max-w-md flex-col\"><div id=\"chatbox\" class=\"flex max-h-48 flex-col overflow-auto\" _=\"\n\t\t\ton focus from window or visibilitychange from window\n\t\t\t\tif &lt;div/&gt; in me exists\n\t\t\t\t\tgo to the bottom of the last &lt;div/&gt; in me smoothly\n\t\t\t\tend\n\t\t\tend\n\n\t\t\ton keydown from &lt;body/&gt;\n\t\t\t\tif event.key == &#39;Enter&#39;\n\t\t\t\t\thalt the event\n\t\t\t\t\tset x to #chatbox-input\n\t\t\t\t\tif x == document.activeElement\n\t\t\t\t\t\tsend submit to #chatbox-form \n\t\t\t\t\telse\n\t\t\t\t\t\tcall x.focus()\n\t\t\t\t\tend\n\t\t\t\telse if event.key == &#39;Escape&#39;\n\t\t\t\t\tset x to #chatbox-input\n\t\t\t\t\tcall x.blur()\n\t\t\t\tend\n\t\t\tend\n\t\t\t\"></div><form id=\"chatbox-form\" _=\"on submit set the value of #chatbox-input to &#39;&#39; end\" ws-send><input id=\"chatbox-input\" name=\"message\" class=\"w-full bg-transparent text-text\" placeholder=\"Press Enter to chat...\" _=\"on blur set my value to &#39;&#39;\"></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -374,7 +374,7 @@ func ChatboxResponse(message string, senderUserToken string) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(senderUserToken[:4])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `lobby/lobby.templ`, Line: 117, Col: 63}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `lobby/lobby.templ`, Line: 133, Col: 63}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 		if templ_7745c5c3_Err != nil {
@@ -387,7 +387,7 @@ func ChatboxResponse(message string, senderUserToken string) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `lobby/lobby.templ`, Line: 118, Col: 13}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `lobby/lobby.templ`, Line: 134, Col: 13}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {

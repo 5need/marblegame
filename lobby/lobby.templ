@@ -76,16 +76,32 @@ templ Chatbox(userToken string) {
 			id="chatbox"
 			class="flex max-h-48 flex-col overflow-auto"
 			_="
-					on focus from window or visibilitychange from window
-						if <div/> in me exists
-							go to the bottom of the last <div/> in me smoothly
-						end
+			on focus from window or visibilitychange from window
+				if <div/> in me exists
+					go to the bottom of the last <div/> in me smoothly
+				end
+			end
+
+			on keydown from <body/>
+				if event.key == 'Enter'
+					halt the event
+					set x to #chatbox-input
+					if x == document.activeElement
+						send submit to #chatbox-form 
+					else
+						call x.focus()
 					end
-					"
+				else if event.key == 'Escape'
+					set x to #chatbox-input
+					call x.blur()
+				end
+			end
+			"
 		></div>
 		<form
-			ws-send
+			id="chatbox-form"
 			_="on submit set the value of #chatbox-input to '' end"
+			ws-send
 		>
 			<input
 				id="chatbox-input"
