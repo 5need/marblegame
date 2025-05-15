@@ -2,6 +2,7 @@ package lobby
 
 import (
 	"marblegame/views"
+	"slices"
 )
 
 templ LobbyView(lobby *Lobby, userToken string) {
@@ -31,13 +32,13 @@ templ PregameLobby(userToken string) {
 	@views.RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col items-center bg-base text-text">
 			<div class="flex w-full max-w-md flex-col">
-				@ListOfLobbies(map[int]*Lobby{})
+				@ListOfLobbies(map[int]*Lobby{}, userToken)
 			</div>
 		</div>
 	}
 }
 
-templ ListOfLobbies(lobbies map[int]*Lobby) {
+templ ListOfLobbies(lobbies map[int]*Lobby, userToken string) {
 	<form
 		id="listOfLobbies"
 		hx-get="/listOfLobbies"
@@ -51,7 +52,13 @@ templ ListOfLobbies(lobbies map[int]*Lobby) {
 				<a
 					href={ templ.SafeURL("/lobby/" + lobby.Id) }
 					class="bg-blue text-base"
-				>join { len(lobby.Players) }/{ lobby.MaxPlayers }</a>
+				>
+					if slices.Contains(lobby.Players, userToken) {
+						rejoin
+					} else {
+						join { len(lobby.Players) }/{ lobby.MaxPlayers }
+					}
+				</a>
 			</div>
 		}
 		<button>refresh</button>

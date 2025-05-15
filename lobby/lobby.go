@@ -179,7 +179,8 @@ func LobbyRoutes(e *echo.Echo) {
 		return LobbyView(myLobby, userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
 	e.GET("/listOfLobbies", func(c echo.Context) error {
-		return ListOfLobbies(GetLobbies()).Render(c.Request().Context(), c.Response().Writer)
+		userToken, _ := c.Cookie("userToken")
+		return ListOfLobbies(GetLobbies(), userToken.Value).Render(c.Request().Context(), c.Response().Writer)
 	})
 	e.GET("/ws/lobby/:lobbyId", func(c echo.Context) error {
 		// find the lobbyHub, then serve it there
