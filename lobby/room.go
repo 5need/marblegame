@@ -16,7 +16,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type LobbyHub struct {
+type Room struct {
 	*websockets.Hub
 	Id          string
 	Name        string
@@ -25,22 +25,15 @@ type LobbyHub struct {
 	Players     []string
 }
 
-var _ websockets.HubInterface = (*LobbyHub)(nil)
+var _ websockets.HubInterface = (*Room)(nil)
 
-func (lh *LobbyHub) RegisterHandler(c *websockets.Client) {
-	// buffer := bytes.Buffer{}
-	// CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
-
-	// c.Hub.Broadcast <- buffer.Bytes()
+func (lh *Room) RegisterHandler(c *websockets.Client) {
 }
 
-func (lh *LobbyHub) UnregisterHandler(c *websockets.Client) {
-	// buffer := bytes.Buffer{}
-	// CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
-	// lobbyHub.Broadcast <- buffer.Bytes()
+func (lh *Room) UnregisterHandler(c *websockets.Client) {
 }
 
-func (lh *LobbyHub) ReadPumpHandler(c *websockets.Client, message []byte) {
+func (lh *Room) ReadPumpHandler(c *websockets.Client, message []byte) {
 	var msg struct {
 		Message string `json:"message"`
 	}
@@ -58,34 +51,35 @@ func (lh *LobbyHub) ReadPumpHandler(c *websockets.Client, message []byte) {
 	if !isCommand {
 		buffer := bytes.Buffer{}
 		ChatboxResponse(msg.Message, c.UserToken).Render(context.Background(), &buffer)
+
 		c.Hub.BroadcastChan() <- buffer.Bytes()
 	} else {
 		switch msg.Message {
 		case "/disband":
 			buffer := bytes.Buffer{}
-			ChatboxResponse("Lobby Leader disbanded the lobby", c.UserToken).Render(context.Background(), &buffer)
-			ReturnToLobbyViewerResponse().Render(context.Background(), &buffer)
+			ChatboxResponse("Room Leader disbanded the room", c.UserToken).Render(context.Background(), &buffer)
+			ReturnToLobbyResponse().Render(context.Background(), &buffer)
 			lh.Broadcast <- buffer.Bytes()
 			lh.CloseAllConnections()
-			lobbyId, _ := strconv.Atoi(lh.Id)
-			delete(lobbies, lobbyId)
+			roomId, _ := strconv.Atoi(lh.Id)
+			delete(rooms, roomId)
 		case "/disconnect":
 			// send out a chat message to everyone
 			buffer := bytes.Buffer{}
 			ChatboxResponse("Player left", c.UserToken).Render(context.Background(), &buffer)
 			lh.Broadcast <- buffer.Bytes()
 
-			// specifically return the dc'd player to the main lobby
+			// specifically return the dc'd player to the lobby
 			buffer = bytes.Buffer{}
-			ReturnToLobbyViewerResponse().Render(context.Background(), &buffer)
+			ReturnToLobbyResponse().Render(context.Background(), &buffer)
 			c.Send <- buffer.Bytes()
 
-			lh.RemovePlayerFromLobby(c.UserToken)
+			lh.RemovePlayerFromRoom(c.UserToken)
 		}
 	}
 }
 
-func (lh *LobbyHub) WritePumpHandler(c *websockets.Client, message []byte) error {
+func (lh *Room) WritePumpHandler(c *websockets.Client, message []byte) error {
 	w, err := c.Conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		return err
@@ -106,49 +100,49 @@ func (lh *LobbyHub) WritePumpHandler(c *websockets.Client, message []byte) error
 	return nil
 }
 
-func (lobby *LobbyHub) AddPlayerToLobby(userToken string) error {
-	alreadyInLobby := slices.Contains(lobby.Players, userToken)
-	if alreadyInLobby {
+func (room *Room) AddPlayerToRoom(userToken string) error {
+	alreadyInRoom := slices.Contains(room.Players, userToken)
+	if alreadyInRoom {
 		return nil
 	}
 
-	atMaxPlayers := len(lobby.Players) >= lobby.MaxPlayers
+	atMaxPlayers := len(room.Players) >= room.MaxPlayers
 
 	if atMaxPlayers {
 		return errors.New("Player count already at max")
 	} else {
-		lobby.Players = append(lobby.Players, userToken)
+		room.Players = append(room.Players, userToken)
 
 		buffer := bytes.Buffer{}
-		CurrentLobby(lobby).Render(context.Background(), &buffer)
-		lobby.Hub.Broadcast <- buffer.Bytes()
+		CurrentRoom(room).Render(context.Background(), &buffer)
+		room.Hub.Broadcast <- buffer.Bytes()
 		return nil
 	}
 }
 
-func (lobby *LobbyHub) RemovePlayerFromLobby(userToken string) error {
-	inLobby := slices.Contains(lobby.Players, userToken)
-	if !inLobby {
-		return errors.New("Player already removed or not in lobby")
+func (room *Room) RemovePlayerFromRoom(userToken string) error {
+	inRoom := slices.Contains(room.Players, userToken)
+	if !inRoom {
+		return errors.New("Player already removed or not in room")
 	}
 
 	updatedPlayerList := []string{}
-	for _, player := range lobby.Players {
+	for _, player := range room.Players {
 		if player != userToken {
 			updatedPlayerList = append(updatedPlayerList, player)
 		}
 	}
 
-	lobby.Players = updatedPlayerList
+	room.Players = updatedPlayerList
 
 	buffer := bytes.Buffer{}
-	CurrentLobby(lobby).Render(context.Background(), &buffer)
-	lobby.Hub.Broadcast <- buffer.Bytes()
+	CurrentRoom(room).Render(context.Background(), &buffer)
+	room.Hub.Broadcast <- buffer.Bytes()
 
 	return nil
 }
 
-func (l *LobbyHub) ServeWS(c echo.Context) error {
+func (l *Room) ServeWS(c echo.Context) error {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024, // maybe change this to be larger since going to send tons of game frame data

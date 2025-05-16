@@ -5,145 +5,41 @@ import (
 	"slices"
 )
 
-templ LobbyView(lobby *LobbyHub, userToken string) {
-	@views.RawBase("MarbleGame") {
-		<div
-			hx-ext="ws"
-			ws-connect={ "/ws/lobby/" + lobby.Id + "?userToken=" + userToken }
-			class="flex min-h-screen flex-col bg-base text-text"
-		>
-			@CurrentLobby(lobby)
-			@Chatbox(userToken)
-		</div>
-	}
-}
-
-templ PregameLobby(userToken string) {
+templ Lobby(userToken string) {
 	@views.RawBase("MarbleGame") {
 		<div class="flex min-h-screen flex-col items-center bg-base text-text">
 			<div class="mt-24 flex w-full max-w-xs flex-col bg-surface0 p-4">
 				<div class="hidden" _="init send submit to the next <form/>"></div>
-				@ListOfLobbies(map[int]*LobbyHub{}, userToken)
+				@ListOfRooms(map[int]*Room{}, userToken)
 			</div>
 		</div>
 	}
 }
 
-templ ListOfLobbies(lobbies map[int]*LobbyHub, userToken string) {
+templ ListOfRooms(rooms map[int]*Room, userToken string) {
 	<form
-		id="listOfLobbies"
-		hx-get="/listOfLobbies"
+		id="listOfRooms"
+		hx-get="/listOfRooms"
 		hx-swap="outerHTML"
 		hx-trigger="load delay:5s, submit"
 		class="flex flex-col"
 	>
 		<button>refresh</button>
-		for _, lobby := range lobbies {
+		for _, room := range rooms {
 			<div class="flex w-full justify-between">
-				<p>{ lobby.Name }</p>
+				<p>{ room.Name }</p>
 				<a
-					href={ templ.SafeURL("/lobby/" + lobby.Id) }
+					href={ templ.SafeURL("/room/" + room.Id) }
 					class="bg-blue text-base"
 				>
-					if slices.Contains(lobby.Players, userToken) {
+					if slices.Contains(room.Players, userToken) {
 						rejoin
 					} else {
-						join { len(lobby.Players) }/{ lobby.MaxPlayers }
+						join { len(room.Players) }/{ room.MaxPlayers }
 					}
 				</a>
 			</div>
 		}
 		<button>refresh</button>
 	</form>
-}
-
-templ CurrentLobby(lobby *LobbyHub) {
-	<div id="currentLobby" hx-swap-oob="true" class="">
-		{ lobby.Id } { lobby.Name }
-		<div>
-			Players:
-			for _, player := range lobby.Players {
-				<div>{ player }</div>
-			}
-		</div>
-	</div>
-}
-
-// This is where you'd type out a chat message to your lobby mates, or send out console commands like `/kick`
-templ Chatbox(userToken string) {
-	<div class="absolute bottom-0 left-0 flex w-full max-w-md flex-col">
-		<div
-			id="chatbox"
-			class="flex max-h-48 flex-col overflow-auto"
-			_="
-			on focus from window or visibilitychange from window
-				if <div/> in me exists
-					go to the bottom of the last <div/> in me smoothly
-				end
-			end
-
-			on keydown from <body/>
-				if event.key == 'Enter'
-					halt the event
-					set x to #chatbox-input
-					if x == document.activeElement
-						send submit to #chatbox-form 
-					else
-						call x.focus()
-					end
-				else if event.key == 'Escape'
-					set x to #chatbox-input
-					call x.blur()
-				end
-			end
-			"
-		></div>
-		<form
-			id="chatbox-form"
-			_="on submit set the value of #chatbox-input to '' end"
-			ws-send
-		>
-			<input
-				id="chatbox-input"
-				name="message"
-				class="w-full bg-transparent text-text"
-				placeholder="Press Enter to chat..."
-				_="on blur set my value to ''"
-			/>
-		</form>
-	</div>
-}
-
-templ ChatboxResponse(message string, senderUserToken string) {
-	<div id="chatbox" hx-swap-oob="beforeend">
-		<div
-			class="px-1 pb-1"
-			_="
-			init
-				measure me
-				set myHeight to it.height
-				measure #chatbox
-				if it.scrollTop + it.height + myHeight + 10 >= it.scrollHeight
-					go to me smoothly
-				end
-			end
-			"
-		>
-			<p class="w-full rounded bg-base px-2 py-1 break-words">
-				<span class="font-mono text-subtext0">{ senderUserToken[:4] }:</span>
-				{ message }
-			</p>
-		</div>
-	</div>
-}
-
-templ ReturnToLobbyViewerResponse() {
-	<div id="chatbox" hx-swap-oob="beforeend">
-		<div
-			class="px-1 pb-1"
-			_="init set window.location.href to '/lobby' end"
-		>
-			l8r
-		</div>
-	</div>
 }

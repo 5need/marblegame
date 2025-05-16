@@ -1,0 +1,109 @@
+package lobby
+
+import (
+	"marblegame/views"
+)
+
+templ RoomView(room *Room, userToken string) {
+	@views.RawBase("MarbleGame") {
+		<div
+			hx-ext="ws"
+			ws-connect={ "/ws/room/" + room.Id + "?userToken=" + userToken }
+			class="flex min-h-screen flex-col bg-base text-text"
+		>
+			@CurrentRoom(room)
+			@Chatbox(userToken)
+		</div>
+	}
+}
+
+templ CurrentRoom(room *Room) {
+	<div id="currentRoom" hx-swap-oob="true" class="">
+		{ room.Id } { room.Name }
+		<div>
+			Players:
+			for _, player := range room.Players {
+				<div>{ player }</div>
+			}
+		</div>
+	</div>
+}
+
+// This is where you'd type out a chat message to your room mates, or send out console commands like `/kick`
+templ Chatbox(userToken string) {
+	<div class="absolute bottom-0 left-0 flex w-full max-w-md flex-col">
+		<div
+			id="chatbox"
+			class="flex max-h-48 flex-col overflow-auto"
+			_="
+			on focus from window or visibilitychange from window
+				if <div/> in me exists
+					go to the bottom of the last <div/> in me smoothly
+				end
+			end
+
+			on keydown from <body/>
+				if event.key == 'Enter'
+					halt the event
+					set x to #chatbox-input
+					if x == document.activeElement
+						send submit to #chatbox-form 
+					else
+						call x.focus()
+					end
+				else if event.key == 'Escape'
+					set x to #chatbox-input
+					call x.blur()
+				end
+			end
+			"
+		></div>
+		<form
+			id="chatbox-form"
+			_="on submit set the value of #chatbox-input to '' end"
+			ws-send
+		>
+			<input
+				id="chatbox-input"
+				name="message"
+				class="w-full bg-transparent text-text"
+				placeholder="Press Enter to chat..."
+				_="on blur set my value to ''"
+			/>
+		</form>
+	</div>
+}
+
+templ ChatboxResponse(message string, senderUserToken string) {
+	<div id="chatbox" hx-swap-oob="beforeend">
+		<div
+			class="px-1 pb-1"
+			_="
+			init
+				measure me
+				set myHeight to it.height
+				measure #chatbox
+				if it.scrollTop + it.height + myHeight + 10 >= it.scrollHeight
+					go to me smoothly
+				end
+			end
+			"
+		>
+			<p class="w-full rounded bg-base px-2 py-1 break-words">
+				<span class="font-mono text-subtext0">{ senderUserToken[:4] }:</span>
+				{ message }
+			</p>
+		</div>
+	</div>
+}
+
+templ ReturnToLobbyResponse() {
+	<div id="chatbox" hx-swap-oob="beforeend">
+		<div
+			class="px-1 pb-1"
+			_="init set window.location.href to '/lobby' end"
+		>
+			l8r
+		</div>
+	</div>
+}

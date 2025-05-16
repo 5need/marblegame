@@ -30,11 +30,11 @@ func TestPlayerAdding(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			l := lobby.NewLobby(123, "123")
+			l := lobby.NewRoom(123, "123")
 			l.MaxPlayers = 2
 
 			for _, p := range tC.input {
-				l.AddPlayerToLobby(p)
+				l.AddPlayerToRoom(p)
 			}
 
 			ans := l.Players
@@ -70,12 +70,12 @@ func TestPlayerRemoval(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			l := lobby.NewLobby(123, "123")
+			l := lobby.NewRoom(123, "123")
 			l.MaxPlayers = 2
 			l.Players = []string{"player 1", "player 2"}
 
 			for _, p := range tC.input {
-				l.RemovePlayerFromLobby(p)
+				l.RemovePlayerFromRoom(p)
 			}
 
 			ans := l.Players

@@ -27,7 +27,7 @@ func MarbleGameRouteHandler(e *echo.Echo) {
 		return gameHub.ServeWS(c)
 	})
 
-	lobby.LobbyRoutes(e)
+	lobby.RoomRoutes(e)
 
 	e.GET("/", func(c echo.Context) error {
 		userToken, err := c.Cookie("userToken")
