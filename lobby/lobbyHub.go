@@ -69,6 +69,18 @@ func (lh *LobbyHub) ReadPumpHandler(c *websockets.Client, message []byte) {
 			lh.CloseAllConnections()
 			lobbyId, _ := strconv.Atoi(lh.Id)
 			delete(lobbies, lobbyId)
+		case "/disconnect":
+			// send out a chat message to everyone
+			buffer := bytes.Buffer{}
+			ChatboxResponse("Player left", c.UserToken).Render(context.Background(), &buffer)
+			lh.Broadcast <- buffer.Bytes()
+
+			// specifically return the dc'd player to the main lobby
+			buffer = bytes.Buffer{}
+			ReturnToLobbyViewerResponse().Render(context.Background(), &buffer)
+			c.Send <- buffer.Bytes()
+
+			lh.RemovePlayerFromLobby(c.UserToken)
 		}
 	}
 }
