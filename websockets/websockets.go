@@ -59,10 +59,7 @@ func (h *Hub) ShouldDebounce() (bool, time.Duration) {
 		return true, h.ReadPumpDebounceDuration
 	}
 }
-func (h *Hub) ReadPumpHandler(c *Client, message []byte) {
-	fmt.Println("ReadPumpHandler from just the Hub thingy")
-	fmt.Println(h.Clients)
-}
+func (h *Hub) ReadPumpHandler(c *Client, message []byte)        {}
 func (h *Hub) WritePumpHandler(c *Client, message []byte) error { return nil }
 
 func (h *Hub) Run() {
@@ -148,11 +145,6 @@ const (
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
-)
-
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 // A Client connects a ws connection to its Hub

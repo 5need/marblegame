@@ -30,7 +30,6 @@ var _ websockets.HubInterface = (*LobbyHub)(nil)
 func (lh *LobbyHub) RegisterHandler(c *websockets.Client) {
 	// buffer := bytes.Buffer{}
 	// CurrentLobby(lobbyHub.Lobby).Render(context.Background(), &buffer)
-	fmt.Println("ADDED USER")
 
 	// c.Hub.Broadcast <- buffer.Bytes()
 }
@@ -42,7 +41,6 @@ func (lh *LobbyHub) UnregisterHandler(c *websockets.Client) {
 }
 
 func (lh *LobbyHub) ReadPumpHandler(c *websockets.Client, message []byte) {
-	fmt.Println(string(message))
 	var msg struct {
 		Message string `json:"message"`
 	}
@@ -55,7 +53,6 @@ func (lh *LobbyHub) ReadPumpHandler(c *websockets.Client, message []byte) {
 	if len(msg.Message) == 0 {
 		return
 	}
-	fmt.Println(msg)
 
 	isCommand := strings.HasPrefix(msg.Message, "/")
 	if !isCommand {

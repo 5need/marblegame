@@ -26,7 +26,6 @@ func GetLobby(lobbyId int) (*LobbyHub, error) {
 }
 
 func NewLobby(lobbyId int, name string) *LobbyHub {
-	fmt.Println("NEW LOBBY")
 	h := websockets.NewHub()
 	newLobby := &LobbyHub{
 		Hub:         h,
@@ -76,17 +75,12 @@ func LobbyRoutes(e *echo.Echo) {
 	})
 	e.GET("/ws/lobby/:lobbyId", func(c echo.Context) error {
 		// find the lobbyHub, then serve it there
-		fmt.Println(lobbies)
 		lobbyId, _ := strconv.Atoi(c.Param("lobbyId"))
 		myLobby, _ := GetLobby(lobbyId)
-
-		fmt.Println(myLobby.Players)
 
 		if ok := slices.Contains(myLobby.Players, c.QueryParam("userToken")); !ok {
 			return c.String(http.StatusUnauthorized, "You're not allowed in this lobby")
 		}
-		fmt.Println("TRYING TO WHATEVER")
-		fmt.Println(myLobby)
 
 		return myLobby.ServeWS(c)
 	})
